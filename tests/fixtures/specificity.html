@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>specificity</title>
+<style>
+  #id .btn { color: #0a7 }
+</style>
+<style>
+  .btn { color: #111 !important; padding: 4px }
+</style>
+<div id="id"><button class="btn">Competing</button></div>

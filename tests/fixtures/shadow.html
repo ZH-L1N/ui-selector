@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>shadow</title>
+<div id="open-host"><span id="slotted-child">slotted light text</span></div>
+<div id="closed-host"></div>
+<p id="plain">plain text</p>
+<script>
+  const open = document.getElementById('open-host').attachShadow({ mode: 'open' })
+  const btn = document.createElement('button')
+  btn.textContent = 'in shadow'
+  btn.style.padding = '4px 8px'
+  const slot = document.createElement('slot')
+  open.append(btn, slot)
+  const closed = document.getElementById('closed-host').attachShadow({ mode: 'closed' })
+  const inner = document.createElement('span')
+  inner.textContent = 'inside a closed tree'
+  closed.append(inner)
+</script>

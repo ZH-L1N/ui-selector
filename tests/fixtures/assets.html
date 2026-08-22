@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>assets</title>
+<!-- The positive asset-collection fixture: one of each source kind the contract
+     names, every http URL carrying a query string that must be reduced away,
+     plus a data: img the collector itself must drop with an omission. -->
+<div id="card">
+  <img id="hero" src="/pixel.png?v=SEEDED-ASSET-QUERY" width="40" height="30" style="object-fit:cover" alt="hero">
+  <picture>
+    <source srcset="/pixel.png?s=SEEDED-ASSET-QUERY 1x, /pixel.png?s2=2 2x" type="image/png">
+    <img src="/pixel.png" alt="pic">
+  </picture>
+  <video poster="/pixel.png?p=SEEDED-ASSET-QUERY"></video>
+  <div style="width:10px;height:10px;background-image:url('/pixel.png?bg=SEEDED-ASSET-QUERY')"></div>
+  <img src="data:image/svg+xml,SEEDED-ASSET-DATA" alt="dropped">
+</div>

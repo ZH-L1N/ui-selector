@@ -1,0 +1,23 @@
+ui-selector
+Copyright (c) 2026 ZH-L1N
+Licensed under the MIT License (see LICENSE).
+
+Prior art
+---------
+
+This project credits oil-oil/selector (https://github.com/oil-oil/selector) as
+prior art for three ideas it builds on:
+
+  * delivering an element-selection tool as a self-contained `javascript:`
+    bookmarklet rather than a browser extension;
+  * the locator ladder — trying progressively weaker selector strategies and
+    keeping the first one that identifies the element;
+  * the getDisplayMedia screenshot sequence — request a display-capture stream
+    from a user gesture, take one frame, crop it to the element's rect.
+
+ui-selector is a new repository, not a fork, and shares no code with
+oil-oil/selector. All three ideas above are reimplemented here from documented
+Web API behaviour (DOM, CSSOM, Selectors, and Screen Capture).
+
+If any file in this repository later adapts upstream code directly, that file
+will carry upstream's MIT attribution in its own header.

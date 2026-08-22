@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>responsive</title>
+<style>
+  .x { color: #111 }
+  @media (max-width: 600px) {
+    .x { color: #0a7 }
+    @supports (display: grid) {
+      .x { display: grid }
+    }
+  }
+</style>
+<div class="x">responsive target</div>

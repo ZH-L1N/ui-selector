@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>fonts</title>
+<style>
+  @font-face {
+    font-family: 'TestWeb';
+    src: url('/TestWeb.woff2') format('woff2');
+  }
+  p.absent { font-family: 'NotInstalled Sans', monospace }
+  p.web { font-family: 'TestWeb', serif }
+</style>
+<p class="absent">absent family text</p>
+<p class="web">A webfont paragraph</p>

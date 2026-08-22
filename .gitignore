@@ -1,0 +1,8 @@
+node_modules/
+dist/
+selector.config.json
+spikes/out/
+test-results/
+playwright-report/
+tests/fixtures/ui-selector.test.js
+.DS_Store

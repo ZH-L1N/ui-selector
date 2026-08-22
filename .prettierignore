@@ -1,0 +1,26 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+package-lock.json
+
+# Fixtures are inputs to assertions: reformatting their markup changes the text
+# nodes, whitespace, and nth-child structure the tests measure.
+tests/fixtures/
+
+# Authoritative inputs, not deliverables. The spec and the plan are quoted
+# verbatim by README.md and docs/data-contract.md, so a formatter must not
+# rewrite them.
+plans/
+docs/superpowers/specs/
+
+# The TypeScript and build scripts are hand-formatted on purpose: compact
+# allowlist tables, aligned trailing comments that explain WHY a line reads the
+# way it does, and blocks that match the implementation plan verbatim. Prettier
+# reflows all three (a 15-entry allowlist becomes 15 lines and the comments
+# detach from what they annotate), so the formatter owns prose and data files
+# and ESLint owns the code.
+*.ts
+*.mts
+*.mjs
+*.js

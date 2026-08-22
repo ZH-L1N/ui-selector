@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>tokens-override</title>
+<style>
+  :root { --brand: #0a7 }
+  /* high specificity, FAR ancestor */
+  html body .deep { --brand: #111 }
+  /* low specificity, NEAR ancestor — this one must win for .b */
+  .theme-dark { --brand: #fff }
+  .b { color: var(--brand) }
+</style>
+<div class="deep">
+  <div class="theme-dark">
+    <button class="b">themed</button>
+  </div>
+</div>

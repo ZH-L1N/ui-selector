@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>shot-fixture</title>
+<button id="shoot">Screenshot</button>
+<div id="target" style="width:120px;height:80px;background:#0a7"></div>
+<div id="tall" style="height:5000px;background:linear-gradient(red,blue)"></div>
+<script src="/ui-selector.test.js"></script>
+<script>
+  // The handler runs INSIDE the click, so transient user activation is still live when
+  // getDisplayMedia is reached. page.click('#shoot') is what supplies it; a
+  // page.evaluate never can.
+  document.getElementById('shoot').addEventListener('click', async () => {
+    const ctx = window.__uiSelectorTest.ctx()
+    const el = document.getElementById(window.__shotTarget || 'target')
+    window.__shotResult = await window.__uiSelectorTest.screenshot(el, ctx)
+    window.__shotOmissions = ctx.omissions
+  })
+</script>

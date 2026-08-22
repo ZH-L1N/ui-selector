@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Acme Kit — realistic fixture</title>
+<style>
+  :root {
+    --brand: #0a7;
+    --ink: #1a1a1a;
+    --paper: #fff;
+    --radius: 8px;
+    --gap: 16px;
+  }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--ink); background: var(--paper); }
+  header.site { display: flex; align-items: center; gap: var(--gap); padding: 12px 24px; border-bottom: 1px solid #e2e2e2; }
+  header.site nav { display: flex; gap: 12px; margin-left: auto; }
+  header.site nav a { color: var(--ink); text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+  header.site nav a:hover { background: #f0f0f0; }
+  main { max-width: 960px; margin: 0 auto; padding: 24px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); list-style: none; padding: 0; }
+  .card { border: 1px solid #e2e2e2; border-radius: var(--radius); padding: var(--gap); }
+  .card h2::before { content: "\2192"; color: var(--brand); margin-right: 6px; }
+  .btn { padding: 8px 16px; border: none; border-radius: var(--radius); background-color: var(--brand); color: #fff; cursor: pointer; }
+  .btn:hover { background-color: #095f4d; }
+  .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .btn:disabled { background-color: #999; cursor: not-allowed; }
+  footer { padding: 24px; color: #666; }
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: 1fr; }
+    header.site nav { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="site">
+  <img src="/logo.svg" alt="Acme Kit logo" width="32" height="32">
+  <strong>Acme Kit</strong>
+  <nav aria-label="Primary">
+    <a href="/" data-testid="nav-home">Home</a>
+    <a href="/docs">Docs</a>
+    <a href="/pricing" class="nav-pricing">Pricing</a>
+    <a href="/about">About</a>
+  </nav>
+</header>
+<main>
+  <section id="hero">
+    <h1>Design briefs for real components</h1>
+    <p>A realistic, deterministic page for locator and capture tests.</p>
+    <button class="btn" data-testid="cta">Get started</button>
+    <button class="btn" disabled>Unavailable</button>
+  </section>
+  <section class="catalog" aria-label="Catalog">
+    <h2>Components</h2>
+    <ul class="cards">
+      <li class="card" data-testid="card-buttons">
+        <h2>Buttons</h2>
+        <p>Primary, secondary, and disabled states.</p>
+        <a href="/components/buttons">Read more</a>
+      </li>
+      <li class="card">
+        <h2 class="card-title">Forms</h2>
+        <p>Inputs, labels, and validation styles.</p>
+        <a href="/components/forms" class="card-link">Read more</a>
+      </li>
+      <li class="card">
+        <h2>Navigation</h2>
+        <p>Headers, tabs, and breadcrumbs.</p>
+        <a href="/components/navigation">Read more</a>
+      </li>
+    </ul>
+    <button class="btn" type="button">Load more</button>
+  </section>
+  <section id="notes">
+    <h2>Notes</h2>
+    <p>Some elements carry <code>data-testid</code>, some only classes, some nothing —
+      the locator ladder needs all three.</p>
+    <p>This page is committed and served offline on port 8080.</p>
+  </section>
+</main>
+<footer>
+  <p>Fixture page. No network, no analytics, no fonts fetched.</p>
+</footer>
+</body>
+</html>
