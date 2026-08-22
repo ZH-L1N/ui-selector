@@ -44,7 +44,13 @@ function displayCaptureSupported(): boolean {
 // Two animation frames is NOT a frame-delivery guarantee: it can leave videoWidth at 0
 // and crop a blank frame. Wait for the real signals, with a bounded fallback so a
 // stream that never produces a frame cannot hang the tool.
-async function firstFrame(video: HTMLVideoElement, timeoutMs = 3000): Promise<boolean> {
+// 8s, not 3s. The deadline starts only after getDisplayMedia resolves — i.e. after the
+// user has already picked a surface — but a real first attempt still timed out at 3s
+// during the Phase 0 manual check. A synthetic canvas.captureStream delivers instantly,
+// so no automated test can find this boundary.
+const FRAME_TIMEOUT_MS = 8000
+
+async function firstFrame(video: HTMLVideoElement, timeoutMs = FRAME_TIMEOUT_MS): Promise<boolean> {
   // ONE deadline covering both waits. A trackless or dead stream never fires
   // loadedmetadata either, so bounding only the frame wait still hangs the tool
   // forever — which is exactly what a regression test on an empty MediaStream shows.
@@ -68,6 +74,10 @@ export async function screenshot(
   ctx: CaptureContext,
   opts: ShotOptions = {},
 ): Promise<Screenshot | null> {
+  // Each attempt supersedes the last. The control is retryable, so a stale failure from a
+  // previous click must not survive alongside a successful image — that combination hands
+  // a consuming agent a screenshot and a "not captured" record for the same field.
+  ctx.supersede('screenshot')
   const factory = opts.streamFactory
   if (!factory && !displayCaptureSupported()) {
     ctx.omit('screenshot', 'unsupported-browser', 'getDisplayMedia unavailable')
@@ -83,7 +93,10 @@ export async function screenshot(
       : await navigator.mediaDevices.getDisplayMedia(
           // preferCurrentTab is Chromium-only and not in lib.dom's dictionary type;
           // see note 2 in the header for why it is passed with no feature check.
-          { preferCurrentTab: true, video: { frameRate: 1 } } as unknown as DisplayMediaStreamOptions,
+          // No frameRate constraint. `frameRate: 1` saved nothing — we take exactly one frame —
+        // and cost up to a full second of latency before the first one arrived, which is
+        // what pushed a real attempt past the old deadline.
+        { preferCurrentTab: true, video: true } as unknown as DisplayMediaStreamOptions,
         )
   } catch (err) {
     const name = err instanceof DOMException ? err.name : 'Error'
@@ -103,7 +116,7 @@ export async function screenshot(
     // is bounded; a rejection here (autoplay interruption) is not a capture failure.
     void video.play().catch(() => undefined)
     if (!(await firstFrame(video))) {
-      ctx.omit('screenshot', 'unsupported-browser', 'no frame delivered')
+      ctx.omit('screenshot', 'no-frame-delivered', `no frame within ${FRAME_TIMEOUT_MS}ms; retrying may work`)
       return null
     }
 

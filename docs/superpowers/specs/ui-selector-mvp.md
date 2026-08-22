@@ -206,7 +206,7 @@ Every output carries an `omissions` array. Each entry names the field and a
 reason: `restricted-mode`, `cross-origin-stylesheet`, `clipped-screenshot`,
 `unsupported-browser`, `budget-exceeded`, `user-declined`, `blocked-scheme`,
 `unsupported-selector`, `unsupported-at-rule`, `shadow-boundary`,
-`indeterminate-definition`. This list is transcribed from the `OmissionReason` union in
+`indeterminate-definition`, `no-frame-delivered`. This list is transcribed from the `OmissionReason` union in
 `src/types.ts`, which is the single source of truth. Absence must never read as
 "unstyled".
 
@@ -233,9 +233,19 @@ reason: `restricted-mode`, `cross-origin-stylesheet`, `clipped-screenshot`,
   Screen Capture specification's supported-constraint list does not include
   `preferCurrentTab`, so probing it there reports the hint absent even on Chromium: a
   detector that is systematically wrong rather than merely unreliable.
-- A frame that never arrives (metadata or first-frame wait times out) records
-  `unsupported-browser` with detail `no frame delivered`, rather than emitting a blank
-  canvas.
+- A frame that never arrives records **`no-frame-delivered`**, not
+  `unsupported-browser`, and returns nothing rather than emitting a blank canvas. The
+  distinction is load-bearing: the browser is capable, this attempt simply did not deliver,
+  and retrying may well succeed. Telling a consuming agent "unsupported browser" makes a
+  capability claim that is false.
+- **The screenshot control is retryable, and each attempt supersedes the last.** A stale
+  failure record must not survive alongside a successful image — a payload containing both
+  a screenshot and a "screenshot not captured" omission is self-contradictory, and a
+  consuming agent will believe the wrong half.
+- No `frameRate` constraint is placed on the video track. Capping it at 1 fps saved nothing
+  (exactly one frame is taken) and delayed the first frame by up to a second, which is what
+  pushed a real attempt past the deadline during the Phase 0 manual check. The first-frame
+  deadline is 8 s, measured from after the user has picked a surface.
 - A declined permission records `user-declined`.
 
 ## 8. Hard implementation rules (CSP and Trusted Types safety)

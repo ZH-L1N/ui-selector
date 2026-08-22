@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8" />
+<!-- Same policy as strict-csp.html, deliberately WITHOUT the pre-loaded bundle.
+     strict-csp.html ends with <script src="/ui-selector.test.js"> because Task 7's
+     automated test cannot inject under script-src 'self' — but that script runs main()
+     at page load and sets the single-instance guard, so a bookmarklet click there is
+     always a silent no-op. This twin exists for the Phase 0 manual check.
+     tests/unit/fixtures.test.ts asserts the two policies stay identical. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; require-trusted-types-for 'script'">
+<title>strict-csp-manual</title>
+<h1>strict-csp (manual)</h1>
+<p>No bundle is pre-loaded here. Click the ui-selector bookmark.</p>
+<button id="t">Target</button>

@@ -11,6 +11,11 @@ export type OmissionReason =
   | 'cross-origin-stylesheet'
   | 'clipped-screenshot'
   | 'unsupported-browser'
+  // A transient failure, NOT a capability statement: the browser supports capture, this
+  // attempt just did not deliver a frame in time. Reusing 'unsupported-browser' for it
+  // told a consuming agent the browser cannot screenshot at all, which is a different
+  // and wrong claim. Found by a real click; no synthetic stream is slow enough to hit it.
+  | 'no-frame-delivered'
   | 'budget-exceeded'
   | 'user-declined'
   | 'blocked-scheme'
@@ -29,6 +34,11 @@ export interface CaptureContext {
   mode: CaptureMode
   trust: TrustLevel
   omit(field: string, reason: OmissionReason, detail?: string): void
+  // Drops every omission already recorded for `field`. A retryable action (the screenshot
+  // control can be clicked again) must not leave a stale failure record behind: a panel
+  // showing an image while its JSON says "not captured" hands a consuming agent two
+  // contradictory facts, and it will believe the wrong one.
+  supersede(field: string): void
   omissions: Omission[]
 }
 
@@ -41,6 +51,11 @@ export function makeContext(mode: CaptureMode = 'standard', trust: TrustLevel = 
     omissions,
     omit(field, reason, detail) {
       omissions.push(detail === undefined ? { field, reason } : { field, reason, detail })
+    },
+    supersede(field) {
+      for (let i = omissions.length - 1; i >= 0; i--) {
+        if (omissions[i].field === field) omissions.splice(i, 1)
+      }
     },
   }
 }

@@ -34,35 +34,105 @@ check is the only evidence for that claim.
 
 **Steps** (~4 min)
 
-1. Open `http://localhost:8081/strict-csp.html`.
-2. Open DevTools → Console, and clear it.
+Two things that are easy to misread as failures — both cost a real debugging detour the
+first time this check was run, so they are stated before the steps rather than after:
+
+- **No trust dialog appears on a loopback origin, and that is correct.** `classify()` in
+  `src/trust.ts` ignores the port for loopback hosts, and the release build bakes in
+  `http://localhost`, so `localhost:8081` is _trusted_ — the tool goes straight to
+  selection. To exercise the unknown-origin dialog by hand you need a **non-loopback**
+  origin (`https://skill-shelf.pages.dev`, or this machine's LAN IP): with the committed
+  example config, nothing served locally is untrusted, ports included.
+- **A clean teardown clears the guard, so you can re-run on the same page immediately.**
+  `src/boot.ts` sets `window.__uiSelectorActive__` on entry and clears it on teardown, so
+  Close/Escape leaves the page re-runnable. A reload is only needed when a previous
+  activation never tore down — which is exactly what the pre-loaded-bundle fixture does,
+  and is why `strict-csp-manual.html` exists. (An earlier version of this note claimed a
+  reload was always required. Wrong, and worth stating: the guard clearing itself is the
+  evidence that teardown actually runs.)
+
+1. Open `http://localhost:8081/strict-csp.html` (fresh load).
+2. Open DevTools → Console, clear it, and arm a violation collector — more reliable than
+   reading the console, since a violation that does not break the flow is easy to miss:
+
+   ```js
+   window.__csp = []
+   document.addEventListener('securitypolicyviolation', e =>
+     window.__csp.push(`${e.violatedDirective} blocked ${e.blockedURI}`),
+   )
+   ```
+
 3. Click the **ui-selector** bookmark on the bar.
-4. Confirm the trust dialog appears (this origin is unknown unless you added it), choose
-   **Run once**, then hover — the highlight overlay should track the element under the
-   cursor — and click one element.
-5. Confirm the preview panel appears with JSON in it, click **Copy JSON**, and paste
+4. Hover — the highlight overlay should track the element under the cursor — then click one
+   element (the page has a `#t` button).
+5. Confirm the preview panel renders with JSON in it, click **Copy JSON**, and paste
    somewhere to confirm the clipboard write worked.
-6. Read the console. Record **every** CSP violation, including ones that do not stop the
-   flow.
-7. Press Escape to close the panel and confirm the page is left as it was: no leftover
-   overlay, no leftover host element (`document.body.lastElementChild` should be the
-   page's own node).
+6. Press Escape, then read the result:
+
+   ```js
+   console.log(
+     JSON.stringify(
+       {
+         ran: window.__uiSelectorActive__ ?? 'never ran',
+         csp: window.__csp,
+         leftover: [...document.body.children].some(n => n.shadowRoot),
+         bodyLastChild: document.body.lastElementChild?.tagName,
+       },
+       null,
+       2,
+     ),
+   )
+   ```
+
+   `ran: 'never ran'` would mean Chrome refused to execute the `javascript:` URL at all —
+   the one outcome that would invalidate self-contained delivery. `ran: true` with an empty
+   `csp` array is the pass.
 
 **Expected.** Overlay appears, selection works, panel renders, clipboard write succeeds,
 and the console shows **zero** `Content-Security-Policy` violations.
 
-**Result**
+**Result** — PASS
 
 ```
-Date:
-Browser + version:
-Overlay appeared:            yes / no
-Selection + panel worked:    yes / no
-Clipboard write worked:      yes / no
-CSP violations in console:   none / (paste them)
-Clean teardown:              yes / no
-Notes:
+Date:                        2026-08-22 19:39
+Browser + version:           Chrome 151.0.7922.172 (macOS)
+Page:                        http://localhost:8081/strict-csp-manual.html
+Encoded payload in bookmark: 52,129 chars (byte-identical to dist/bookmarklet.txt)
+Guard before the click:      undefined  <- proves the bookmarklet itself ran
+Overlay appeared:            yes
+Selection + panel worked:    yes — captured <button> #t, "Nothing was omitted"
+CSP violations in console:   none (securitypolicyviolation collector returned [])
+Clipboard write worked:      yes — Copy JSON produced the full object on paste
+Clean teardown:              yes — guard cleared, bodyChildren "H1,P,BUTTON", strayDivs 0
 ```
+
+Notes: this is the one claim no automated test in the repo can make, and it holds — a real
+`javascript:` URL invoked from the bookmarks bar executes and completes a full capture under
+`default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self';
+require-trusted-types-for 'script'`, with zero violations. The CSP-motivated rules
+(no `innerHTML`, no injected `<style>`, `<canvas>` instead of `<img src="blob:">`, no runtime
+network) are what bought this; none of them was speculative.
+
+**Three defects in this document and its fixtures were found by running it**, all mine, and
+all worse than a code bug because a checklist is the only source of truth for the person
+following it:
+
+1. The original step 4 said to expect a trust dialog and called the origin unknown. Wrong
+   twice over: `classify()` ignores the port for loopback, so `localhost:8081` is _trusted_
+   — and a trusted origin still shows a dialog, just the Standard/Deep mode chooser rather
+   than a run-once prompt. "No dialog" was read as failure when the real problem was
+   elsewhere entirely.
+2. The check pointed at `strict-csp.html`, which ends with
+   `<script src="/ui-selector.test.js">` because Task 7's automated test cannot inject under
+   `script-src 'self'`. That script runs `main()` at load and sets the single-instance guard,
+   so **a bookmarklet click on that page is always a silent no-op** — the fixture is
+   structurally hostile to the manual check it was named in. Fixed by adding
+   `strict-csp-manual.html`: identical policy, no pre-loaded bundle, with
+   `tests/unit/fixtures.test.ts` asserting the two policies never drift apart.
+3. Nothing in the pipeline ever verified this document. 82 findings across three adversarial
+   plan rounds and five code-review lenses, all aimed at code; the checklist responsible for
+   the claims automation _cannot_ reach had zero coverage. It now has two tests behind its
+   central fixture, which is not the same as coverage but is no longer zero.
 
 ---
 
@@ -113,19 +183,47 @@ crop scale is derived from `videoWidth / window.innerWidth` and never from
 **Result**
 
 ```
-Date:
-Chrome version / worked:
-Firefox version / worked:
-Safari version / worked:
-Screenshot control enabled in:        Chrome / Firefox / Safari
-Picker offered this tab directly in:  Chrome / Firefox / Safari
-Crop landed correctly in:             Chrome / Firefox / Safari
-Survived Chrome restart:              yes / no
-Survived export + re-import:          yes / no
-Survived sync to a second device:     yes / no / n/a
-Largest encoded length that survived: ______ bytes
-Notes:
+Date:                                 2026-08-22 19:50
+Chrome version / worked:              151.0.7922.172 / yes
+Firefox version / worked:             NOT INSTALLED on this machine — untested, not assumed
+Safari version / worked:              26.3 / pending
+Screenshot control enabled in:        Chrome (yes)
+Picker offered this tab directly in:  Chrome (yes — preferCurrentTab honoured)
+Crop landed correctly in:             Chrome (yes — framed the #t button exactly, at DPR 2)
+Survived Chrome restart:              pending
+Survived export + re-import:          pending
+Survived sync to a second device:     pending
+Largest encoded length that survived: 52,129 bytes (install + click, Chrome)
 ```
+
+**The crop scale is now evidenced on a real stream.** At DPR 2 the cropped image framed the
+target exactly. Had the code used `devicePixelRatio` instead of
+`videoWidth / window.innerWidth` — which the plan's first draft did — the result would have
+been visibly offset or doubled. Every automated test drives a synthetic
+`canvas.captureStream`, so this scale relationship on a genuine `getDisplayMedia` frame had
+no evidence anywhere until this click.
+
+**Three real defects surfaced here, all on the path CI cannot reach.** The trigger was
+mundane: the first Screenshot click timed out, the user clicked again, it worked — and the
+panel then showed the image *and* `screenshot — unsupported-browser (no frame delivered)`
+side by side.
+
+1. **A retry did not supersede the previous attempt's failure.** `takeScreenshot` closes over
+   the capture's single `ctx`, and `omit()` only appends. Copying the JSON at that moment
+   would have handed an agent a screenshot together with a record saying no screenshot was
+   captured — and an agent that believes the omission discards a perfectly good image.
+   Fixed with `ctx.supersede(field)`, called at the top of every attempt.
+2. **A frame timeout was labelled `unsupported-browser`** — a capability claim, and false.
+   The browser was entirely capable; that one attempt did not deliver in time. Now
+   `no-frame-delivered`, a distinct reason whose detail says a retry may work.
+3. **`video: { frameRate: 1 }` with a 3 s deadline was too tight in practice.** The cap
+   saved nothing (exactly one frame is taken) and could delay the first frame by a second.
+   Removed, and the deadline raised to 8 s.
+
+Only the third needed a human to find. The first two were reachable by a test that nobody
+had thought to write, because nobody had clicked the button twice — and clicking twice is
+what a real person does when the first click appears to do nothing. Three new e2e tests now
+cover all three, including that superseding one field leaves other fields' omissions intact.
 
 ---
 

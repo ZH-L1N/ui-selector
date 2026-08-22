@@ -133,9 +133,11 @@ test('records user-declined when the permission is refused', async ({ page }) =>
   expect(omissions.some(o => o.reason === 'user-declined')).toBe(true)
 })
 
-test('records unsupported-browser rather than a blank canvas when no frame arrives', async ({ page }) => {
-  // A stream whose track never delivers a frame: the bounded fallback must return
-  // null with a `no frame delivered` detail instead of emitting an empty crop.
+test('a frame timeout reports no-frame-delivered, NOT unsupported-browser', async ({ page }) => {
+  // The distinction is the point. The browser supports capture; this attempt did not
+  // deliver a frame. Labelling that 'unsupported-browser' told a consuming agent the
+  // browser cannot screenshot at all — a different and false claim. Found by a real click
+  // during the Phase 0 manual check: no synthetic stream is slow enough to reach here.
   await page.goto('http://localhost:8081/shot.html')
   const out = await page.evaluate(async () => {
     const ctx = window.__uiSelectorTest.ctx()
@@ -145,5 +147,59 @@ test('records unsupported-browser rather than a blank canvas when no frame arriv
     return { shot: shot === null, omissions: ctx.omissions }
   })
   expect(out.shot).toBe(true)
-  expect(out.omissions.some(o => o.reason === 'unsupported-browser' && o.detail === 'no frame delivered')).toBe(true)
+  expect(out.omissions.some(o => o.reason === 'no-frame-delivered')).toBe(true)
+  expect(out.omissions.some(o => o.reason === 'unsupported-browser')).toBe(false)
+})
+
+test('a successful retry supersedes the previous attempt\'s failure record', async ({ page }) => {
+  // The screenshot control is retryable, and a real user clicked it twice: the first
+  // attempt timed out, the second succeeded, and the panel then showed an image ALONGSIDE
+  // "screenshot — not captured". Copy JSON would have handed an agent both facts at once.
+  await page.addInitScript(DETERMINISTIC_STREAM)
+  await page.goto('http://localhost:8081/shot.html')
+  const out = await page.evaluate(async () => {
+    const ctx = window.__uiSelectorTest.ctx()
+    const el = document.getElementById('target')!
+
+    // Attempt 1: a trackless stream, so it times out and records the failure.
+    const first = await window.__uiSelectorTest.screenshot(el, ctx, {
+      streamFactory: async () => new MediaStream(),
+    })
+    const afterFirst = ctx.omissions.filter(o => o.field === 'screenshot').length
+
+    // Attempt 2: a real frame source, exactly as clicking the control again would do.
+    const { stream, stop } = window.__mkStream(1)
+    try {
+      const second = await window.__uiSelectorTest.screenshot(el, ctx, {
+        streamFactory: async () => stream,
+      })
+      return {
+        firstWasNull: first === null,
+        afterFirst,
+        secondGotImage: Boolean(second && second.canvas.width > 0),
+        screenshotOmissionsAfterRetry: ctx.omissions.filter(o => o.field === 'screenshot').length,
+        otherOmissionsSurvived: ctx.omissions.filter(o => o.field !== 'screenshot').length,
+      }
+    } finally {
+      stop()
+    }
+  })
+  expect(out.firstWasNull).toBe(true)
+  expect(out.afterFirst).toBe(1)                      // the failure was recorded
+  expect(out.secondGotImage).toBe(true)
+  expect(out.screenshotOmissionsAfterRetry).toBe(0)   // ...and then superseded
+})
+
+test('superseding screenshot omissions leaves other fields untouched', async ({ page }) => {
+  await page.goto('http://localhost:8081/shot.html')
+  const out = await page.evaluate(async () => {
+    const ctx = window.__uiSelectorTest.ctx()
+    ctx.omit('styles.matchedRules', 'cross-origin-stylesheet', 'http://elsewhere/a.css')
+    await window.__uiSelectorTest.screenshot(document.getElementById('target')!, ctx, {
+      streamFactory: async () => new MediaStream(),
+    })
+    return ctx.omissions.map(o => o.field)
+  })
+  expect(out).toContain('styles.matchedRules')        // a different field must survive
+  expect(out).toContain('screenshot')
 })

@@ -147,6 +147,13 @@ Two design invariants:
 - Prettier owns prose and data files only; `.prettierignore` excludes `*.ts`/`*.mjs`
   because the code is hand-formatted (compact allowlist tables, aligned WHY comments,
   blocks that match the plan verbatim) and ESLint owns the code. Don't widen it casually.
+- A retryable action must call `ctx.supersede(field)` before recording anything: the
+  screenshot control can be clicked again, and a stale failure next to a successful image
+  gives a consuming agent two contradictory facts. Found by clicking it twice by hand.
+- `no-frame-delivered` is not `unsupported-browser`. One says "this attempt didn't", the
+  other says "this browser can't"; only the second is a capability claim. Don't conflate
+  them, and don't put a `frameRate` cap on a one-frame grab — 1 fps cost a real attempt its
+  deadline.
 - Every omission reason must exist in the `OmissionReason` union in `src/types.ts` first;
   spec §6.5 and `docs/data-contract.md` are transcribed from it, never maintained in
   parallel.
