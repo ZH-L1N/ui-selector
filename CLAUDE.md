@@ -121,12 +121,11 @@ Two design invariants:
   Google Fonts link). Wrap it and degrade to a `cross-origin-stylesheet` omission.
 - `getMatchedCSSRules` no longer exists; matched rules are hand-rolled by walking
   `document.styleSheets` and testing `el.matches(selectorText)`.
-- A Claude artifact embedded in the claude.ai shell is a **cross-origin iframe** and
-  is out of reach — a bookmarklet only ever runs in the top document. Open the
-  artifact document as the top-level page instead. `claude.ai` is also a sensitive
-  host: `classify()` forces it (and subdomains) to unknown even when the baked
-  config lists it, so it always runs restricted — never re-route this through the
-  config path.
+- Claude artifacts are **not supported** and were cut after hand testing: they are nested
+  three frames deep (claude.ai → `*.frame.claudeusercontent.com` → `iframe.ready`), a
+  bookmarklet runs only in the top document, and every artifact has its own random subdomain
+  so it can never be practically trusted. Selecting a frame records
+  `frame-content-unreachable`. `claude.ai` stays a code-enforced sensitive host.
 - A locator that reports `confidence: 'exact'` while resolving to a different element
   is a hard defect, not a low-confidence result.
 - In the real flow the pointer is resting on the picked element at capture time, so

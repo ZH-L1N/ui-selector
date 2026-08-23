@@ -25,28 +25,52 @@ position, the webfont load status, the interaction states.
 
 1. **localhost dev servers** — the primary loop.
 2. **User-controlled deployed sites**, e.g. `https://skill-shelf.pages.dev/`.
-3. **Claude artifact pages** — a first-class target, with one structural caveat:
-   a published artifact at `https://claude.ai/code/artifact/<id>` renders the
-   artifact document inside a **cross-origin iframe**. A bookmarklet executes in
-   the top document only and cannot reach a cross-origin iframe's DOM. So:
-   - Supported: loading the artifact's own document as the top-level page.
-   - Not supported in v1: selecting inside the artifact while it is embedded in
-     the claude.ai shell.
-   This is a property of the bookmarklet form, not a bug to fix later; only an
-   extension with all-frames injection could change it. Phase 0 Spike 1 verifies
-   the exact frame topology before we design around it.
 
-   **Decision:** v1 accepts the workaround. The README documents "open the artifact
-   document as the top-level page" as the supported artifact flow. An extension is
-   explicitly **not** planned for v1 and does not shape any v1 design choice.
+Any ordinary top-level document works. What does not work is anything inside a frame, and
+that boundary has one consequence worth naming explicitly.
 
-   Because the claude.ai shell page also contains conversation text, `claude.ai`
-   is a **sensitive host, enforced in code**: `classify()` forces it (and any subdomain)
-   to `unknown` even when the baked config lists it, so it can never reach trusted state
-   and Deep mode stays locked there. Belt and braces — the config is the user's own, but a
-   trusted claude.ai would unlock a Deep subtree walk over conversation text, which is a
-   footgun worth removing rather than documenting. Text
-   capture there is subject to the restricted-mode cap (§6).
+### Claude artifacts are NOT supported in v1
+
+They were a stated target through planning and implementation, and were **cut after being
+tested by hand**. The reason is structural, not a defect to fix later.
+
+A published artifact is nested **three deep**, verified on a real artifact:
+
+```
+claude.ai                                  the shell (also carries conversation text)
+  └─ iframe → <uuid>.frame.claudeusercontent.com    a wrapper shell of its own
+       └─ iframe.ready                              the actual artifact document
+```
+
+A bookmarklet executes only in the top document, so at every level the deepest thing
+selectable is the next frame's box. Opening the middle document directly does not help —
+tested, and it lands on `IFRAME.ready`. Opening the innermost URL directly does not help
+either — also tested, and still only a single box.
+
+Two further facts make this unfixable within the bookmarklet form rather than merely
+awkward:
+
+- **Artifact origins are per-artifact random subdomains** (`<uuid>.frame.claudeusercontent.com`).
+  `classify()` matches hostnames exactly and deliberately performs no suffix matching,
+  because suffix matching is how a lookalike host gets trusted. So an artifact origin can
+  never be practically trusted: adding one entry covers exactly one artifact. Artifacts
+  would always run restricted — 80-character text cap, no Deep mode.
+- Only an extension with all-frames injection could reach inside. That is a different
+  product, and it is not v1.
+
+**What the tool does instead of failing silently.** Selecting a frame records
+`frame-content-unreachable` and names the boundary. This matters more than the cut itself:
+before it existed, selecting an artifact returned a brief that looked entirely successful —
+box model, computed styles, no omissions — describing an empty rectangle. A user with no
+model of frame boundaries would read that as "this component has no styles".
+
+**`claude.ai` remains a sensitive host, enforced in code.** `classify()` forces it and any
+subdomain to `unknown` even when the baked config lists it, so it can never reach trusted
+state and Deep mode stays locked there. The shell page carries conversation text, and a
+trusted claude.ai would unlock a Deep subtree walk over it. That guard stays regardless of
+this scope cut — arguably it matters more now, since a user who wanted artifact support is
+exactly the user who might try adding claude.ai to their config.
+
 
 ## 4. Trust model
 
@@ -270,8 +294,10 @@ reason: `restricted-mode`, `cross-origin-stylesheet`, `clipped-screenshot`,
 
 ## 8. Hard implementation rules (CSP and Trusted Types safety)
 
-These make the tool work on strict-CSP pages, which includes Claude artifact
-documents. They are cheap on day one and a painful retrofit later.
+These make the tool work on strict-CSP pages. They are not speculative: a real bookmarklet
+click was verified against `default-src 'self'; script-src 'self'; style-src 'self';
+img-src 'self'; require-trusted-types-for 'script'` with zero violations, which is the one
+claim no automated test in this repo can make. They are cheap on day one and a painful retrofit later.
 
 - No runtime network requests of any kind (self-contained payload).
 - No `eval`, no `new Function`.
@@ -298,8 +324,7 @@ broken.
 
 ## 10. v1 cuts
 
-No iframes, no multi-select, no server, no scroll-and-stitch, no forced states,
-no multi-viewport re-capture, `@keyframes` Deep-only.
+**Claude artifacts** (cut after hand testing — three frames deep, see §3), no iframes, no multi-select, no server, no scroll-and-stitch, no forced states, no multi-viewport re-capture, `@keyframes` Deep-only, screenshots Chromium-only.
 
 ## 11. Scale
 

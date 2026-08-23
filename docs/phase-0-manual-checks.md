@@ -227,49 +227,63 @@ cover all three, including that superseding one field leaves other fields' omiss
 
 ---
 
-## Check 3 — Claude artifact frame topology
+## Check 3 — Claude artifact frame topology — RESOLVED: artifacts cut from v1
 
-**Why this is manual.** It must run in your own logged-in claude.ai session. Nothing in
-CI can log in, and nothing should try.
+**Ran 2026-08-22 20:18. Outcome: the documented workaround does not exist, and artifact support was
+removed from v1 as a result.**
 
-**Steps** (~2 min)
-
-1. Open one of your **own** published artifacts in claude.ai.
-2. In DevTools on the claude.ai page, run:
-
-   ```js
-   const frames = [...document.querySelectorAll('iframe')].map(f => ({
-     src: f.src,
-     sandbox: f.getAttribute('sandbox'),
-   }))
-   console.table(frames)
-   ```
-
-3. Record the result, and specifically whether the artifact document's origin differs from
-   `https://claude.ai` (i.e. whether it is cross-origin).
-4. Click the bookmark on the claude.ai page and record what happens: the tool should run
-   in the top document and be unable to select anything inside the artifact frame.
-5. Open the artifact document's own URL as the **top-level** page (paste the frame `src`
-   into a new tab) and click the bookmark there. Select an element and confirm the capture
-   is of the artifact's own DOM.
-
-**Expected.** The artifact document is a cross-origin iframe, unreachable from a
-bookmarklet, and the top-level-page workaround documented in the README works. Keep
-`claude.ai` out of your trusted origins either way — the shell page carries conversation
-text, so it should always run under the restricted cap.
-
-**Result**
+Measured on a real published artifact:
 
 ```
-Date:
-iframe list (paste):
-Artifact document cross-origin:            yes / no
-Bookmarklet on the claude.ai shell:        (what happened)
-Bookmarklet on the artifact as top-level:  worked / failed
-Notes:
+iframe on claude.ai:  src  = https://<uuid>.frame.claudeusercontent.com/...
+                      sandbox = "allow-scripts allow-same-origin allow-forms"
+that document:        bodyChildren = HEADER#hdr, DIV#hdr-degraded, MAIN, DIV#err, DIV
+                      elementFromPoint(centre) = IFRAME.ready     <- nested AGAIN
+innermost iframe:     has a real src; opened top-level; still only one selectable box
 ```
 
----
+So an artifact is **three frames deep**, not one. Every hop was tried by hand: the claude.ai
+shell, the middle `frame.claudeusercontent.com` document, and the innermost URL. All three
+yield the same thing — the next frame's box — because a bookmarklet only ever executes in
+the top document.
+
+`allow-same-origin` in the sandbox attribute is a red herring: it stops the frame being
+forced into an opaque origin, and grants a parent document nothing.
+
+**Why this is a cut and not a bug.** Two independent walls:
+
+1. Reaching inside frames requires an extension with all-frames injection. Different
+   product.
+2. Even granted access, artifacts could never be _trusted_: each lives on its own random
+   subdomain, and `classify()` matches hostnames exactly on purpose — suffix matching is
+   precisely how a lookalike host gets trusted. One config entry would cover one artifact.
+   Artifacts would run permanently restricted (80-char cap, no Deep).
+
+**This invalidated an earlier decision, which is the part worth keeping.** Artifact support
+was put to the user as a choice between accepting a one-hop workaround and building an
+extension, and the workaround was chosen. That choice rested on the workaround existing.
+It did not. The premise came from reading the spec's own §3, which asserted the topology
+from inference and never verified it — the plan had even scheduled a spike to check exactly
+this, and the manual check inherited the unverified claim instead of testing it first.
+
+**What shipped instead of silence.** Selecting a frame now records
+`frame-content-unreachable` with the boundary named. Before that, selecting an artifact
+returned a brief that looked entirely successful — box model, computed styles, no omissions —
+describing an empty rectangle. That is the failure mode this whole checklist exists to catch:
+not a crash, a confident wrong answer.
+
+```
+Date:                                      2026-08-22 20:18
+iframe on claude.ai (origin):              <uuid>.frame.claudeusercontent.com — cross-origin, confirmed
+sandbox:                                   allow-scripts allow-same-origin allow-forms
+Artifact document cross-origin:            yes
+Nested deeper still:                       yes — IFRAME.ready inside the middle document
+Bookmarklet on the claude.ai shell:        selects shell chrome only; artifact area is one frame box
+Bookmarklet on the middle document:        selects IFRAME.ready, nothing inside it
+Bookmarklet on the innermost URL:          still a single box
+Documented workaround:                     FAILED — does not exist at any depth
+Resolution:                                artifacts cut from v1 (user decision, 2026-08-22 20:18)
+```
 
 ## If a check fails
 

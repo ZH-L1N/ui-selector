@@ -177,31 +177,42 @@ so you can tell whether the bookmark you are holding is stale.
   image rather than a misaligned one. Everything else — selection, JSON, prompt-ready
   Markdown — works on Safari; Firefox is untested.
 
-## Claude artifacts
+## Claude artifacts are not supported
 
-Artifact documents are a first-class target, with one structural caveat. A published
-artifact at `https://claude.ai/code/artifact/<id>` renders the artifact document inside a
-**cross-origin iframe**, and a bookmarklet only ever executes in the top document — it
-cannot reach a cross-origin iframe's DOM. This is a property of the bookmarklet form, not
-a bug awaiting a fix; only an extension with all-frames injection could change it, and an
-extension is explicitly not planned for v1.
+They were a target throughout planning and were **cut after being tested by hand**. The
+reason is structural, so it is worth stating rather than leaving you to discover it.
 
-So capture the artifact document as a **top-level page**:
+A published artifact is nested three frames deep:
 
-1. Open the artifact in claude.ai as you normally would.
-2. Find the artifact document's own URL. Either open the artifact's "open in new tab" /
-   full-screen control, or in DevTools run
-   `[...document.querySelectorAll('iframe')].map(f => f.src)` on the claude.ai page and
-   take the artifact frame's `src`.
-3. Paste that URL into the address bar of a new tab, so the artifact document is now the
-   **top-level** document (the address bar shows the artifact's own origin, not
-   `claude.ai`).
-4. Click the ui-selector bookmark there and pick your element as usual.
+```
+claude.ai                                        the conversation shell
+  └─ iframe → <uuid>.frame.claudeusercontent.com  a wrapper shell of its own
+       └─ iframe.ready                            the actual artifact document
+```
 
-Selecting inside the artifact while it is embedded in the claude.ai shell is **not
-supported in v1**. And because the claude.ai shell page also contains conversation text,
-`claude.ai` is a sensitive host: it always runs restricted — a `claude.ai` entry in
-your trusted origins is ignored by construction.
+A bookmarklet only ever runs in the top document, so wherever you click, the deepest thing
+it can select is the next frame's box. Opening the middle document directly lands on
+`IFRAME.ready`; opening the innermost URL directly still yields a single box. All three were
+tried.
+
+There is also no way to trust an artifact even if you could reach it: every artifact lives on
+its own random subdomain, and origin matching here is exact by design — suffix matching is
+how a lookalike hostname gets trusted, so it is not on offer. One config entry would cover
+exactly one artifact.
+
+Reaching inside frames needs an extension with all-frames injection. That is a different
+product, and this is not it.
+
+**What you will see if you try.** Selecting a frame produces
+`frame-content-unreachable` in the omissions, naming the boundary. That exists because the
+alternative was worse: before it, selecting an artifact returned a brief that looked
+completely successful — box model, computed styles, no omissions — describing an empty
+rectangle. Silence there reads as "this component has no styles", which is a wrong answer
+delivered confidently.
+
+`claude.ai` is additionally a **sensitive host enforced in code**: it is forced to untrusted
+even if you add it to your config, because the shell page carries conversation text and a
+trusted claude.ai would unlock a Deep subtree walk over it.
 
 ## Threat model
 
