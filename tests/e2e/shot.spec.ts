@@ -203,3 +203,60 @@ test('superseding screenshot omissions leaves other fields untouched', async ({ 
   expect(out).toContain('styles.matchedRules')        // a different field must survive
   expect(out).toContain('screenshot')
 })
+
+test('refuses a frame whose surface is not this tab, instead of emitting a wrong crop', async ({ page }) => {
+  // Safari's picker offers only window and screen — it cannot capture a tab — so the frame
+  // contains browser chrome and desktop at an offset we cannot know. The old code cropped
+  // anyway and recorded NO omission: a confidently wrong image, which for a design brief is
+  // worse than none. Simulated here by a frame with a screen-like aspect ratio.
+  await page.goto('http://localhost:8081/shot.html')
+  const out = await page.evaluate(async () => {
+    const src = document.createElement('canvas')
+    src.width = 2560                       // 16:10 screen, not this viewport
+    src.height = 1600
+    const c = src.getContext('2d')!
+    let frame = 0
+    const paint = (): void => {
+      c.fillStyle = '#345'
+      c.fillRect(0, 0, src.width, src.height)
+      frame = requestAnimationFrame(paint)
+    }
+    paint()
+    const stream = (src as HTMLCanvasElement).captureStream(30)
+    try {
+      const ctx = window.__uiSelectorTest.ctx()
+      const shot = await window.__uiSelectorTest.screenshot(document.getElementById('target')!, ctx, {
+        streamFactory: async () => stream,
+      })
+      return { shot: shot === null, omissions: ctx.omissions, viewAspect: window.innerWidth / window.innerHeight }
+    } finally {
+      cancelAnimationFrame(frame)
+      stream.getTracks().forEach(t => t.stop())
+    }
+  })
+  // Guard the premise: if the viewport ever happened to be 16:10 this test would be vacuous.
+  expect(Math.abs(out.viewAspect - 1.6) / 1.6).toBeGreaterThan(0.02)
+  expect(out.shot).toBe(true)
+  expect(out.omissions.some(o => o.reason === 'wrong-capture-surface')).toBe(true)
+})
+
+test('accepts a frame that does match this viewport', async ({ page }) => {
+  // The other half of the same check: a viewport-shaped frame must still be cropped, or the
+  // guard above would be indistinguishable from "screenshots never work".
+  await page.addInitScript(DETERMINISTIC_STREAM)
+  await page.goto('http://localhost:8081/shot.html')
+  const ok = await page.evaluate(async () => {
+    const { stream, stop } = window.__mkStream(1)
+    try {
+      const ctx = window.__uiSelectorTest.ctx()
+      const shot = await window.__uiSelectorTest.screenshot(document.getElementById('target')!, ctx, {
+        streamFactory: async () => stream,
+      })
+      return Boolean(shot && shot.canvas.width > 0) &&
+        !ctx.omissions.some(o => o.reason === 'wrong-capture-surface')
+    } finally {
+      stop()
+    }
+  })
+  expect(ok).toBe(true)
+})

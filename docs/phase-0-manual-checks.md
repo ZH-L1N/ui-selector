@@ -186,10 +186,10 @@ crop scale is derived from `videoWidth / window.innerWidth` and never from
 Date:                                 2026-08-22 19:50
 Chrome version / worked:              151.0.7922.172 / yes
 Firefox version / worked:             NOT INSTALLED on this machine — untested, not assumed
-Safari version / worked:              26.3 / pending
-Screenshot control enabled in:        Chrome (yes)
-Picker offered this tab directly in:  Chrome (yes — preferCurrentTab honoured)
-Crop landed correctly in:             Chrome (yes — framed the #t button exactly, at DPR 2)
+Safari version / worked:              26.3 / capture yes, screenshot NO (by design, see below)
+Screenshot control enabled in:        Chrome (yes). Safari: enabled but always refuses — Chromium-only
+Picker offered this tab directly in:  Chrome only. Safari offers window/screen and NO tab option
+Crop landed correctly in:             Chrome (exact, DPR 2). Safari: wrong before the fix, now refused
 Survived Chrome restart:              pending
 Survived export + re-import:          pending
 Survived sync to a second device:     pending
@@ -205,7 +205,7 @@ no evidence anywhere until this click.
 
 **Three real defects surfaced here, all on the path CI cannot reach.** The trigger was
 mundane: the first Screenshot click timed out, the user clicked again, it worked — and the
-panel then showed the image *and* `screenshot — unsupported-browser (no frame delivered)`
+panel then showed the image _and_ `screenshot — unsupported-browser (no frame delivered)`
 side by side.
 
 1. **A retry did not supersede the previous attempt's failure.** `takeScreenshot` closes over
@@ -285,3 +285,50 @@ Notes:
 
 Record failures here as well as fixing them. A check that failed once and passed after a
 change is more useful to the next person than a checklist with only green in it.
+
+
+---
+
+## Check 2b addendum — Safari, 2026-08-22 20:02
+
+**Result: screenshots are Chromium-only. Decided on evidence, not preference.**
+
+Safari 26.3 ran the tool correctly — selection, JSON, prompt Markdown, `Nothing was
+omitted`, and the Screenshot control was enabled exactly as spec §7 predicted. Then the
+screenshot came back as a near-empty sliver, **with no omission recorded**: the code believed
+it had succeeded.
+
+Cause. The crop assumes the frame *is* the viewport — frame pixel (0,0) is viewport CSS
+(0,0), and `videoWidth / innerWidth` is the CSS-to-frame scale. That holds only for tab
+capture. Safari's picker offers **only window and screen, no tab at all**, so the frame
+carries browser chrome and desktop at an offset that cannot be determined from inside the
+page, and `videoWidth` is the screen's width rather than the viewport's. Both the scale and
+the origin were wrong, and nothing checked.
+
+This falsified the spec clause written two commits earlier — "a missing `preferCurrentTab`
+hint merely degrades the experience" — on its first contact with a non-Chromium browser. It
+does not degrade the experience. It produces a confidently wrong image, silently, which for
+a design brief is worse than no image at all: a misaligned screenshot misleads and nothing
+downstream can detect it.
+
+Fixed by verifying the surface before cropping — `displaySurface === 'browser'` where
+reported, else a 2% aspect-ratio match against the viewport — and recording
+`wrong-capture-surface` with no image when it fails. Two e2e tests cover both directions,
+because a guard with only the refusal tested is indistinguishable from "screenshots never
+work".
+
+**That spec clause has now been wrong three times**, which is worth more than the fix:
+
+1. Draft: gated on `getSupportedConstraints()` — a track-constraint probe that does not list
+   `preferCurrentTab`, so it reported the hint absent even on Chromium. Broken detector.
+2. Round-3 review: "works wherever `getDisplayMedia` exists, the hint only degrades UX."
+   Plausible, reviewed by three rounds, and false.
+3. Now: works only where the frame can be established to be this viewport.
+
+Each version was more defensible than the last, and only the third survived contact with a
+second browser. The right gate turned out to be neither a capability probe nor a browser
+name, but a property of the frame in hand — and no amount of review found that, because
+review had no second browser to run.
+
+**Safari status: supported for capture, not for screenshots.** Firefox: not installed on
+this machine, untested, and recorded as untested rather than assumed either way.

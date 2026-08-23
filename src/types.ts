@@ -16,6 +16,12 @@ export type OmissionReason =
   // told a consuming agent the browser cannot screenshot at all, which is a different
   // and wrong claim. Found by a real click; no synthetic stream is slow enough to hit it.
   | 'no-frame-delivered'
+  // The captured surface is not this tab, so the crop geometry is unknowable: a window or
+  // screen frame contains browser chrome and desktop at an unknown offset, and its width
+  // is not the viewport's. Emitting a crop anyway produces a confidently wrong image,
+  // which for a design brief is worse than no image. Found on Safari, whose picker offers
+  // only window and screen — it cannot capture a tab at all.
+  | 'wrong-capture-surface'
   | 'budget-exceeded'
   | 'user-declined'
   | 'blocked-scheme'

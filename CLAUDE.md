@@ -150,6 +150,10 @@ Two design invariants:
 - A retryable action must call `ctx.supersede(field)` before recording anything: the
   screenshot control can be clicked again, and a stale failure next to a successful image
   gives a consuming agent two contradictory facts. Found by clicking it twice by hand.
+- The crop assumes the frame IS the viewport, so the captured surface is verified first
+  (`displaySurface === 'browser'`, else a 2% aspect match). Safari's picker offers only
+  window and screen — no tab — so **screenshots are Chromium-only** and Safari correctly
+  ends in `wrong-capture-surface`. Selection/JSON/Markdown work there fine.
 - `no-frame-delivered` is not `unsupported-browser`. One says "this attempt didn't", the
   other says "this browser can't"; only the second is a capability claim. Don't conflate
   them, and don't put a `frameRate` cap on a one-frame grab — 1 fps cost a real attempt its

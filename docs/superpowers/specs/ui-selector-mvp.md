@@ -206,7 +206,7 @@ Every output carries an `omissions` array. Each entry names the field and a
 reason: `restricted-mode`, `cross-origin-stylesheet`, `clipped-screenshot`,
 `unsupported-browser`, `budget-exceeded`, `user-declined`, `blocked-scheme`,
 `unsupported-selector`, `unsupported-at-rule`, `shadow-boundary`,
-`indeterminate-definition`, `no-frame-delivered`. This list is transcribed from the `OmissionReason` union in
+`indeterminate-definition`, `no-frame-delivered`, `wrong-capture-surface`. This list is transcribed from the `OmissionReason` union in
 `src/types.ts`, which is the single source of truth. Absence must never read as
 "unstyled".
 
@@ -224,11 +224,31 @@ reason: `restricted-mode`, `cross-origin-stylesheet`, `clipped-screenshot`,
 - Support is decided by one fact only: whether
   `navigator.mediaDevices.getDisplayMedia` exists. If it does not, the screenshot
   control is disabled and an `unsupported-browser` omission is emitted.
-- `preferCurrentTab: true` is passed **unconditionally**. It is a Chromium-only hint
-  and a dictionary member, so an engine that does not implement it ignores it — there
-  is nothing to detect and no branch to get wrong. Chromium offers this tab; Firefox
-  and Safari show their own surface picker. Either way capture proceeds, and no omission
-  is produced.
+- **Screenshots require tab capture, which in practice means Chromium.** The crop assumes
+  the frame *is* the viewport: frame pixel (0,0) is viewport CSS (0,0), and
+  `videoWidth / innerWidth` is the CSS-to-frame scale. Both hold only when the captured
+  surface is this tab. A window or screen frame contains browser chrome and desktop at an
+  offset that cannot be determined from inside the page, so its geometry is unknowable.
+- `preferCurrentTab: true` is passed unconditionally — it is a dictionary member, so an
+  engine that does not implement it ignores it. Chromium honours it and offers this tab.
+- **The captured surface is verified before cropping.** `displaySurface === 'browser'` where
+  the browser reports it (Chromium); otherwise the frame's aspect ratio must match the
+  viewport's within 2%. Failing that, `wrong-capture-surface` is recorded and **no image is
+  produced**. A confidently wrong crop is worse than none: a brief carrying a misaligned
+  screenshot misleads silently, and nothing downstream can detect it.
+- **Safari cannot do this at all** — its picker offers only window and screen, verified by
+  hand on Safari 26.3 — so the control there always ends in `wrong-capture-surface`.
+  Selection, JSON, and Markdown work normally on Safari; only screenshots are gated.
+
+  This clause has been wrong twice, so the reasoning is recorded, not just the conclusion.
+  The first draft gated Firefox/Safari on `getSupportedConstraints()`, a track-constraint
+  probe that does not list `preferCurrentTab` and so reports it absent even on Chromium — a
+  detector that was simply broken. Round-3 review replaced it with "capture works wherever
+  `getDisplayMedia` exists; a missing hint merely degrades the experience", which sounded
+  right and was falsified the first time anyone ran it on Safari: it does not degrade the
+  experience, it silently produces an incorrect image. The correct gate is neither a
+  constraint probe nor a browser name — it is whether the frame can be established to be
+  this viewport.
 - `getSupportedConstraints()` is **not** used. It enumerates *track* constraints and the
   Screen Capture specification's supported-constraint list does not include
   `preferCurrentTab`, so probing it there reports the hint absent even on Chromium: a
@@ -266,9 +286,15 @@ documents. They are cheap on day one and a painful retrofit later.
 
 ## 9. Browser support
 
-Chrome / Chromium is the supported target for v1. Firefox and Safari are best-effort:
-selection and capture work; screenshots work wherever `getDisplayMedia` exists, and
-without the `preferCurrentTab` hint the user picks the surface manually.
+Chrome / Chromium is the supported target for v1.
+
+Selection, capture, JSON, and Markdown are best-effort elsewhere, and were verified working
+by hand on Safari 26.3. **Screenshots are Chromium-only**, and not as a matter of policy:
+they require tab capture, and a browser that cannot offer this tab as a capture surface
+cannot produce a locatable crop. There the control ends in `wrong-capture-surface` with no
+image, which is the honest outcome. Firefox is untested — not assumed working, not assumed
+broken.
+
 
 ## 10. v1 cuts
 

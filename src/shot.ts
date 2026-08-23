@@ -69,6 +69,24 @@ async function firstFrame(video: HTMLVideoElement, timeoutMs = FRAME_TIMEOUT_MS)
   return ok && video.videoWidth > 0
 }
 
+// The crop math below assumes the frame IS the viewport: that frame pixel (0,0) is
+// viewport CSS (0,0), and that videoWidth/innerWidth is the CSS-to-frame scale. Both hold
+// only for tab capture. A window or screen frame includes chrome and desktop at an offset
+// we cannot know, so the honest move is to refuse rather than emit a wrong crop.
+function capturedThisViewport(stream: MediaStream, video: HTMLVideoElement): boolean {
+  const track = stream.getVideoTracks()[0]
+  // Authoritative where implemented (Chromium): 'browser' means a tab.
+  const surface = (track?.getSettings?.() as { displaySurface?: string } | undefined)?.displaySurface
+  if (surface) return surface === 'browser'
+
+  // No displaySurface (Safari): fall back to geometry. A tab frame has the viewport's
+  // aspect ratio; a window frame is taller by the chrome, a screen frame taller still.
+  if (!video.videoWidth || !video.videoHeight || !window.innerWidth || !window.innerHeight) return false
+  const frameAspect = video.videoWidth / video.videoHeight
+  const viewAspect = window.innerWidth / window.innerHeight
+  return Math.abs(frameAspect - viewAspect) / viewAspect <= 0.02
+}
+
 export async function screenshot(
   el: Element,
   ctx: CaptureContext,
@@ -117,6 +135,15 @@ export async function screenshot(
     void video.play().catch(() => undefined)
     if (!(await firstFrame(video))) {
       ctx.omit('screenshot', 'no-frame-delivered', `no frame within ${FRAME_TIMEOUT_MS}ms; retrying may work`)
+      return null
+    }
+
+    if (!capturedThisViewport(stream, video)) {
+      ctx.omit(
+        'screenshot',
+        'wrong-capture-surface',
+        'the captured surface is not this tab, so the element rect cannot be located in the frame',
+      )
       return null
     }
 

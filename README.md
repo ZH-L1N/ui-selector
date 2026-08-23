@@ -170,16 +170,12 @@ so you can tell whether the bookmark you are holding is stale.
 - **Chrome / Chromium** is the supported target for v1.
 - **Firefox and Safari** are best-effort: selection, capture, and both output formats
   work. Screenshots work wherever `navigator.mediaDevices.getDisplayMedia` exists, but
-  the `preferCurrentTab` hint is Chromium-only, so those browsers show their own surface
-  picker and you choose the tab manually. Support is decided by that one fact — if
-  `getDisplayMedia` is absent, the Screenshot control is disabled and an
-  `unsupported-browser` omission is recorded.
-- Screenshots additionally require a **secure context**, so they are unavailable on
-  non-loopback `http://`.
-- The tool is built for strict-CSP and Trusted-Types pages: no `eval`, no `new Function`,
-  no `innerHTML` / `outerHTML` / `insertAdjacentHTML`, no injected `<script>` or
-  `<style>` tag, no `<img src="blob:">`, no network. The UI is built with `createElement`
-  - `textContent` inside a **closed shadow root**.
+  **Screenshots are Chromium-only.** They need tab capture: the crop assumes the captured
+  frame is this tab's viewport, and a window or screen frame puts the viewport at an offset
+  that cannot be determined from inside the page. Safari's picker offers only window and
+  screen, so the screenshot control there records `wrong-capture-surface` and produces no
+  image rather than a misaligned one. Everything else — selection, JSON, prompt-ready
+  Markdown — works on Safari; Firefox is untested.
 
 ## Claude artifacts
 
