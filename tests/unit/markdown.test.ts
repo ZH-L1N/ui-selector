@@ -47,6 +47,17 @@ describe('toMarkdown', () => {
     expect(md).toContain(':hover')
   })
 
+  it('renders the computed styles — the section the brief is FOR', () => {
+    // Regression guard for a real defect: toMarkdown rendered identity, layout, tokens,
+    // typography, states, pseudo, responsive, deep and omissions — every section except
+    // the styles. The existing tests all passed, because each asserted a section that WAS
+    // rendered. None asked whether the important one was missing.
+    const md = toMarkdown(fixture)
+    expect(md).toContain('## Styles')
+    expect(md).toContain('color: rgb(255, 255, 255)')
+    expect(md).toContain('background-color: rgb(0, 170, 119)')
+  })
+
   it('surfaces omissions so absence never reads as unstyled', () => {
     expect(toMarkdown(fixture)).toMatch(/omission|not captured/i)
   })

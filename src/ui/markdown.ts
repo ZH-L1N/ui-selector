@@ -5,6 +5,7 @@
 // src/capture/** — that is what makes Markdown inherit every redaction
 // guarantee for free (spec §6.3), and a Proxy-based purity test pins it.
 import type { CaptureV1 } from '../types'
+import { STYLE_GROUPS } from '../allowlists'
 
 const round = (n: number): number => Math.round(n * 100) / 100
 
@@ -54,6 +55,24 @@ export function toMarkdown(result: CaptureV1): string {
     lines.push(`- Ancestry: ${layout.ancestry.map(a => `${a.tagName}${a.role ? `[${a.role}]` : ''}(${a.display})`).join(' < ')}`)
   }
   lines.push('')
+
+  // The computed styles. This section did not exist until the first actionability run:
+  // every OTHER section was rendered, so the brief looked complete, and the tests asserted
+  // the sections that were present rather than asking whether the important one was there.
+  // A prompt-ready design brief without colours, borders, or resolved layout values is not
+  // a design brief.
+  const computed = result.styles.computed
+  const rendered = Object.keys(computed).length
+  if (rendered) {
+    lines.push('## Styles')
+    lines.push('')
+    for (const [group, props] of Object.entries(STYLE_GROUPS)) {
+      const present = props.filter(k => computed[k] !== undefined && computed[k] !== '')
+      if (!present.length) continue
+      lines.push(`- **${group}** — ${present.map(k => `${k}: ${computed[k]}`).join('; ')}`)
+    }
+    lines.push('')
+  }
 
   if (styles.variables.length) {
     lines.push('## Design tokens')

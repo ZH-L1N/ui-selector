@@ -90,6 +90,29 @@ export const STYLE_PROPERTIES = [
   'object-fit', 'aspect-ratio', 'filter', 'backdrop-filter',
 ] as const
 
+// The same properties as STYLE_PROPERTIES, grouped for rendering. A unit test asserts every
+// STYLE_PROPERTIES entry appears in exactly one group, so adding a property without
+// deciding where it belongs fails the build rather than silently vanishing from the brief.
+export const STYLE_GROUPS: Record<string, readonly string[]> = {
+  'Box and position': ['display', 'position', 'top', 'right', 'bottom', 'left', 'z-index',
+    'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'box-sizing',
+    'margin', 'padding', 'aspect-ratio'],
+  'Flex and grid': ['flex-direction', 'flex-wrap', 'justify-content', 'align-items',
+    'align-content', 'gap', 'flex', 'grid-template-columns', 'grid-template-rows',
+    'grid-auto-flow', 'grid-area', 'align-self', 'justify-self', 'order'],
+  Typography: ['font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+    'letter-spacing', 'text-align', 'text-transform', 'text-decoration', 'text-overflow',
+    'white-space', 'word-break', 'vertical-align', 'font-feature-settings'],
+  Colour: ['color', 'background-color', 'opacity'],
+  'Border and outline': ['border', 'border-width', 'border-style', 'border-color',
+    'border-radius', 'outline', 'outline-offset'],
+  Effects: ['box-shadow', 'text-shadow', 'transform', 'transform-origin', 'filter',
+    'backdrop-filter'],
+  Motion: ['transition', 'animation'],
+  'Overflow and rendering': ['overflow-x', 'overflow-y', 'visibility', 'cursor',
+    'pointer-events', 'object-fit'],
+}
+
 export const CAPS = {
   ancestryDepth: 5,
   textTrusted: 200,

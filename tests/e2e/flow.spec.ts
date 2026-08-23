@@ -2,7 +2,10 @@
 // runHeadless composition the redaction gate uses.
 import { expect, test } from '@playwright/test'
 
-test('full flow on a real-world page produces actionable JSON with no secrets', async ({ page, context }) => {
+// NOT an actionability test, despite what this was called until now: it asserts field
+// PRESENCE and the absence of seeds. Whether a brief is actually usable by an agent is a
+// different question, measured by hand — see docs/actionability.md.
+test('full flow on a real-world page populates the contract and leaks no seeds', async ({ page, context }) => {
   await context.addCookies([{ name: 'sid', value: 'SEEDED-COOKIE', url: 'http://localhost:8080' }])
   await page.goto('http://localhost:8080/?q=SEEDED-QUERY')
   await page.addScriptTag({ path: 'dist/ui-selector.test.js' })
