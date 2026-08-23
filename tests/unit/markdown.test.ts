@@ -58,6 +58,46 @@ describe('toMarkdown', () => {
     expect(md).toContain('background-color: rgb(0, 170, 119)')
   })
 
+  it('suppresses the two UA defaults that measurably caused wrong output', () => {
+    // Not a tidiness rule. In the first actionability run `transition: all` (the default
+    // shorthand for "no transition") led 7 of 12 rebuilders to invent 150-200ms motion the
+    // page does not have, and `outline: <color> none 3px` led 2 to draw a focus ring that
+    // does not exist. A default serialization that reads as an instruction is worse than
+    // padding, so these are dropped rather than trimmed.
+    const md = toMarkdown({
+      ...fixture,
+      styles: {
+        ...fixture.styles,
+        computed: {
+          ...fixture.styles.computed,
+          transition: 'all',
+          outline: 'rgb(255, 255, 255) none 3px',
+          'outline-offset': '0px',
+        },
+      },
+    })
+    expect(md).not.toContain('transition: all')
+    expect(md).not.toContain('none 3px')
+    expect(md).not.toContain('outline-offset')
+  })
+
+  it('keeps a transition that is actually set', () => {
+    const md = toMarkdown({
+      ...fixture,
+      styles: { ...fixture.styles, computed: { ...fixture.styles.computed, transition: 'background-color 0.2s ease' } },
+    })
+    expect(md).toContain('background-color 0.2s ease')
+  })
+
+  it('does not claim nothing was omitted when the capture boundary hid things', () => {
+    // Five rebuilders independently flagged the old wording as misleading: "Nothing was
+    // omitted" was true of the element's own fields while the descendants, siblings, and
+    // ancestor background that actually determine appearance were never in scope.
+    const md = toMarkdown({ ...fixture, omissions: [] })
+    expect(md).toMatch(/own captured fields/)
+    expect(md).toMatch(/outside the capture boundary/)
+  })
+
   it('surfaces omissions so absence never reads as unstyled', () => {
     expect(toMarkdown(fixture)).toMatch(/omission|not captured/i)
   })

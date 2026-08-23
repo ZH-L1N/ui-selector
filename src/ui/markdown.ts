@@ -62,12 +62,64 @@ export function toMarkdown(result: CaptureV1): string {
   // A prompt-ready design brief without colours, borders, or resolved layout values is not
   // a design brief.
   const computed = result.styles.computed
-  const rendered = Object.keys(computed).length
-  if (rendered) {
+
+  // Two UA-default serializations do not merely pad the prompt — measured against real
+  // rebuilds, they CAUSED wrong output, so they are suppressed rather than trimmed:
+  //   `transition: all`             the default shorthand for "no transition". Seven of
+  //                                 twelve rebuilders read it as an instruction and
+  //                                 invented 150-200ms motion the page does not have.
+  //   `outline: <color> none 3px`   the default when nothing sets an outline. Two
+  //                                 rebuilders back-formed a 3px focus ring from it.
+  // Anything whose value carries no information is dropped too; ~15 of the 63 captured
+  // properties did all the work in practice, and a shorter brief is a clearer one.
+  const NOISE: Record<string, readonly string[]> = {
+    transition: ['all', 'all 0s ease 0s', 'all 0s'],
+    animation: ['none', 'none 0s ease 0s 1 normal none running'],
+    'text-overflow': ['clip'],
+    'word-break': ['normal'],
+    'vertical-align': ['baseline'],
+    'font-feature-settings': ['normal'],
+    'aspect-ratio': ['auto'],
+    'min-width': ['0px'], 'min-height': ['0px'],
+    'max-width': ['none'], 'max-height': ['none'],
+    'pointer-events': ['auto'],
+    visibility: ['visible'],
+    'overflow-x': ['visible'], 'overflow-y': ['visible'],
+    'box-shadow': ['none'], 'text-shadow': ['none'],
+    filter: ['none'], 'backdrop-filter': ['none'],
+    'text-transform': ['none'], 'text-decoration': ['none solid rgb(0, 0, 0)'],
+    transform: ['none'], opacity: ['1'], 'font-style': ['normal'],
+    'letter-spacing': ['normal'], 'white-space': ['normal'],
+  }
+  const REPLACED = new Set(['IMG', 'VIDEO', 'CANVAS', 'OBJECT', 'EMBED', 'IFRAME', 'SVG', 'PICTURE'])
+
+  const informative = (k: string, v: string): boolean => {
+    if (v === undefined || v === '') return false
+    if (NOISE[k]?.includes(v)) return false
+    // An outline that is not drawn: the width is meaningless and reads as a real ring.
+    if ((k === 'outline' || k === 'outline-offset') && /\bnone\b/.test(computed.outline ?? '')) return false
+    // Positional offsets and z-index say nothing on a statically positioned element.
+    if (['top', 'right', 'bottom', 'left', 'z-index'].includes(k) && computed.position === 'static') return false
+    // transform-origin is a pixel pair nobody can use when there is no transform.
+    if (k === 'transform-origin' && (computed.transform ?? 'none') === 'none') return false
+    // object-fit only means something on a replaced element.
+    if (k === 'object-fit' && !REPLACED.has(result.element.tagName)) return false
+    // The border shorthand already says "none"; the longhands then only repeat it.
+    if (['border-width', 'border-style', 'border-color'].includes(k) &&
+        /\bnone\b/.test(computed.border ?? '')) return false
+    return true
+  }
+
+  // The flex/grid block is pure padding unless the element is a container or an item.
+  const parentDisplay = result.layout.parent.display ?? ''
+  const isFlexGrid = /flex|grid/.test(computed.display ?? '') || /flex|grid/.test(parentDisplay)
+
+  if (Object.keys(computed).length) {
     lines.push('## Styles')
     lines.push('')
     for (const [group, props] of Object.entries(STYLE_GROUPS)) {
-      const present = props.filter(k => computed[k] !== undefined && computed[k] !== '')
+      if (group === 'Flex and grid' && !isFlexGrid) continue
+      const present = props.filter(k => informative(k, computed[k]))
       if (!present.length) continue
       lines.push(`- **${group}** — ${present.map(k => `${k}: ${computed[k]}`).join('; ')}`)
     }
@@ -145,7 +197,7 @@ export function toMarkdown(result: CaptureV1): string {
       lines.push(`- ${o.field} — ${o.reason}${o.detail ? ` (${o.detail})` : ''}`)
     }
   } else {
-    lines.push('- Nothing was omitted.')
+    lines.push('- Nothing was omitted from this element\u2019s own captured fields. Descendants, siblings, and ancestor backgrounds are outside the capture boundary and were never in scope \u2014 their absence is not recorded here.')
   }
   lines.push('')
 
