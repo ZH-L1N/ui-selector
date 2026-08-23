@@ -190,10 +190,10 @@ Safari version / worked:              26.3 / capture yes, screenshot NO (by desi
 Screenshot control enabled in:        Chrome (yes). Safari: enabled but always refuses — Chromium-only
 Picker offered this tab directly in:  Chrome only. Safari offers window/screen and NO tab option
 Crop landed correctly in:             Chrome (exact, DPR 2). Safari: wrong before the fix, now refused
-Survived Chrome restart:              pending
-Survived export + re-import:          pending
-Survived sync to a second device:     pending
-Largest encoded length that survived: 52,129 bytes (install + click, Chrome)
+Survived Chrome restart:              yes
+Survived export + re-import:          yes
+Survived sync to a second device:     n/a — no second device available
+Largest encoded length that survived: 52,882 bytes (install, click, restart, export + re-import)
 ```
 
 **The crop scale is now evidenced on a real stream.** At DPR 2 the cropped image framed the
@@ -286,7 +286,6 @@ Notes:
 Record failures here as well as fixing them. A check that failed once and passed after a
 change is more useful to the next person than a checklist with only green in it.
 
-
 ---
 
 ## Check 2b addendum — Safari, 2026-08-22 20:02
@@ -298,7 +297,7 @@ omitted`, and the Screenshot control was enabled exactly as spec §7 predicted. 
 screenshot came back as a near-empty sliver, **with no omission recorded**: the code believed
 it had succeeded.
 
-Cause. The crop assumes the frame *is* the viewport — frame pixel (0,0) is viewport CSS
+Cause. The crop assumes the frame _is_ the viewport — frame pixel (0,0) is viewport CSS
 (0,0), and `videoWidth / innerWidth` is the CSS-to-frame scale. That holds only for tab
 capture. Safari's picker offers **only window and screen, no tab at all**, so the frame
 carries browser chrome and desktop at an offset that cannot be determined from inside the
@@ -332,3 +331,38 @@ review had no second browser to run.
 
 **Safari status: supported for capture, not for screenshots.** Firefox: not installed on
 this machine, untested, and recorded as untested rather than assumed either way.
+
+---
+
+## Check 3 partial — 2026-08-22 20:08
+
+**The §3 caveat is confirmed on a real artifact.** On the claude.ai shell the only selectable
+thing over an artifact is one large box — the `<iframe>` element itself. Individual text,
+components, and images inside it are unreachable, exactly as predicted: a bookmarklet runs
+only in the top document.
+
+**And the code said nothing about it.** Selecting the frame returned a JSON brief that looks
+successful — a box model, computed styles, no omissions — describing an empty rectangle.
+Same failure shape as the Safari screenshot: not a crash, not an error, just a confident
+answer to a question the tool cannot actually answer. A user with no knowledge of frame
+boundaries would read that output as "this component has no styles".
+
+Fixed: selecting an `IFRAME` / `FRAME` / `OBJECT` / `EMBED` now records
+`frame-content-unreachable`, and the detail names the way out — open the frame URL as a
+top-level page. Cross-origin is distinguished from same-origin (v1 traverses neither, but
+the reason differs, and so does whether traversal could ever be added). Tested against
+`frames.html` with a genuinely cross-origin frame, a same-origin frame, and an ordinary
+element as a no-false-positive control.
+
+Still outstanding: the workaround itself — step 5 — has not been exercised. If opening the
+artifact document as a top-level page does not work, the README's artifact section is wrong
+and must be corrected before anyone relies on it.
+
+```
+Date:                                      2026-08-22 20:08
+iframe list (paste):                       pending
+Artifact document cross-origin:            yes (confirmed by behaviour: only the frame box is selectable)
+Bookmarklet on the claude.ai shell:        runs in the top document; selects the iframe box only,
+                                           and now says frame-content-unreachable
+Bookmarklet on the artifact as top-level:  PENDING — the documented workaround, still unverified
+```

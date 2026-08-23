@@ -22,6 +22,12 @@ export type OmissionReason =
   // which for a design brief is worse than no image. Found on Safari, whose picker offers
   // only window and screen — it cannot capture a tab at all.
   | 'wrong-capture-surface'
+  // The selected element is a frame. A bookmarklet only ever runs in the top document, so
+  // the frame's contents are unreachable and the capture describes an empty box. Saying so
+  // matters: without it the output looks like a successful capture of a component, and the
+  // user cannot tell why the brief is useless. This is how a Claude artifact behaves — it
+  // renders in a cross-origin iframe on the claude.ai shell.
+  | 'frame-content-unreachable'
   | 'budget-exceeded'
   | 'user-declined'
   | 'blocked-scheme'

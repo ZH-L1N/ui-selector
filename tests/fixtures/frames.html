@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>frames</title>
+<!-- A cross-origin frame (127.0.0.1:8082 is a different origin from localhost:8081) and a
+     same-origin one. v1 never traverses either, so selecting either must say so. -->
+<h1>frames</h1>
+<iframe id="cross" src="http://127.0.0.1:8082/site-lite.html" width="300" height="120"></iframe>
+<iframe id="same" src="/site-lite.html" width="300" height="120"></iframe>
+<button id="plain">Plain</button>

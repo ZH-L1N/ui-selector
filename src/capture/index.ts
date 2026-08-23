@@ -1,3 +1,5 @@
+const FRAME_TAGS = new Set(['IFRAME', 'FRAME', 'OBJECT', 'EMBED'])
+
 // src/capture/index.ts — capture(el, ctx) orchestrator: ONE capture path.
 //
 // Assembles env, element identity, locator, layout, styles, pseudo-elements,
@@ -82,6 +84,23 @@ function elementIdentity(el: Element, ctx: CaptureContext): ElementIdentity {
 }
 
 export function capture(el: Element, ctx: CaptureContext): CaptureV1 {
+  if (FRAME_TAGS.has(el.tagName)) {
+    // A bookmarklet runs only in the top document, so we describe the frame's box and
+    // nothing inside it. Without this the output reads as a successful component capture.
+    let cross = true
+    try {
+      cross = (el as HTMLIFrameElement).contentDocument == null
+    } catch {
+      cross = true                     // a throw is itself a cross-origin signal
+    }
+    ctx.omit(
+      'element.frameContent',
+      'frame-content-unreachable',
+      cross
+        ? 'cross-origin frame: open the frame URL as a top-level page and capture there'
+        : 'frames are not traversed in v1; open the frame URL as a top-level page',
+    )
+  }
   const rules = matchedRules(el, ctx)
   const result: CaptureV1 = {
     schemaVersion: '1.0',
