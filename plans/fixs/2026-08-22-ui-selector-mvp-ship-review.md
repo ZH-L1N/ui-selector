@@ -124,13 +124,22 @@ passed + 1 skipped (shot-live, environmental), bundle 52,129 bytes of 60,000.
 
 TEMP(2026-08-22, until: v1.1): the items below are known and deliberately unfixed.
 
-**Unverified, not refuted** — its skeptic died on an API error mid-run, so nobody checked it:
+**Resolved 2026-08-22 — was the run's only finding with no verdict either way**, after its
+skeptic died on an API error mid-run:
 
-- `src/capture/styles.ts:103` (medium) — custom properties are extracted only from
-  declarations found in `rules.applied`. A `var()` reference reaching an allowlisted
-  property from another source may be silently absent from `styles.variables` with no
-  `indeterminate-definition` omission. Verify this first in v1.1; it is the only finding in
-  the whole run with no verdict either way.
+- `src/capture/styles.ts:103` (was: medium, **confirmed**) — the declared-value map was built
+  solely from `rules.applied`, and inline styles never enter `document.styleSheets`. So
+  `style="background-color: var(--brand)"` produced an **empty tokens table and no omission**:
+  the brief showed a resolved `rgb(0, 170, 119)` with nothing indicating it came from
+  `--brand`, silently losing the design-system link the tokens table exists to provide.
+  Verified by probe (stylesheet var → discovered; identical inline var → `variables: []`,
+  `omissions: []`), then fixed by overlaying inline declarations with the correct cascade
+  order — author `!important` > inline > normal author rule. Two tests, both red first.
+
+  Worth noting what kind of case this was: not an edge case. CSS-in-JS, styled-components,
+  and runtime theming all emit inline styles carrying `var()`, so on a modern page this was
+  the *common* path. The finding sat unverified because a verifier process died, not because
+  anyone judged it unlikely — a reminder that "no verdict" is not "probably fine".
 
 **Refuted, recorded for the trail:**
 

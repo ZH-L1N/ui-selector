@@ -137,6 +137,28 @@ export function captureStyles(el: Element, rules: MatchedRules, ctx: CaptureCont
     }
   }
 
+  // Inline declarations, overlaid last. They never appear in document.styleSheets, so a map
+  // built only from matched rules cannot see them — and a `style="background: var(--brand)"`
+  // element then reported a resolved rgb() with an EMPTY token table and no omission,
+  // silently losing the design-system link the table exists to provide. CSS-in-JS,
+  // styled-components, and dynamic theming all emit exactly this shape, so this is the
+  // common case on a modern page rather than an edge case.
+  //
+  // Cascade order for this map: author !important > inline > normal author rule. Inline
+  // carries no selector, so it gets the maximal specificity an author selector could reach
+  // only for comparison purposes; the `important` flag above still outranks it.
+  const inlineStyle = (el as HTMLElement).style
+  if (inlineStyle) {
+    for (const prop of STYLE_PROPERTIES) {
+      const value = inlineStyle.getPropertyValue(prop)
+      if (!value) continue
+      const inlineImportant = inlineStyle.getPropertyPriority(prop) === 'important'
+      const current = declared.get(prop)
+      if (current?.important && !inlineImportant) continue      // author !important wins
+      declared.set(prop, { value, specificity: [1, 0, 0], important: inlineImportant })
+    }
+  }
+
   // Which variables those declared values reference, and where.
   const usedBy = new Map<string, Set<string>>()
   for (const [prop, d] of declared) {

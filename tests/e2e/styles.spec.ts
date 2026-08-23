@@ -148,3 +148,51 @@ test('distinguishes a webfont from a family no @font-face declares', async ({ pa
   // No field claims the absent family is or is not rendered — see Step 4.
   expect(out.absent).not.toHaveProperty('firstFamilyRendered')
 })
+
+test('discovers tokens referenced from an INLINE style, not just from stylesheet rules', async ({ page }) => {
+  // The declared-value map was built solely from rules.applied. Inline styles never enter
+  // document.styleSheets, so `style="background-color: var(--brand)"` produced an empty
+  // tokens table AND no omission: the brief showed a resolved rgb() with no hint that it
+  // came from a design token, silently losing the design-system link the table exists for.
+  await page.goto('http://localhost:8081/tokens.html')
+  await page.addScriptTag({ path: 'dist/ui-selector.test.js' })
+  const out = await page.evaluate(() => {
+    const json = window.__uiSelectorTest.runHeadless('[data-inline]')
+    return { variables: json.styles.variables, bg: json.styles.computed['background-color'] }
+  })
+  expect(out.bg).toBe('rgb(0, 170, 119)')              // the token did resolve
+  const brand = out.variables.find(v => v.name === '--brand')
+  expect(brand, 'inline var() reference was not discovered').toBeTruthy()
+  expect(brand!.resolved).toBe('#0a7')
+  expect(brand!.usedBy).toContain('background-color')
+  expect(out.variables.find(v => v.name === '--radius')?.usedBy).toContain('border-radius')
+})
+
+test('an inline declaration outranks a stylesheet rule, but not an !important one', async ({ page }) => {
+  // Cascade order for the declared-value map: author !important > inline > normal author.
+  await page.goto('http://localhost:8081/tokens.html')
+  await page.addScriptTag({ path: 'dist/ui-selector.test.js' })
+  const out = await page.evaluate(() => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const style = document.createElement('style')
+    style.textContent = '.ov { color: var(--a) } .ov-imp { color: var(--b) !important }'
+    document.head.appendChild(style)
+    const mk = (cls: string) => {
+      const d = document.createElement('div')
+      d.className = cls
+      d.setAttribute('data-ov', '')
+      d.style.setProperty('color', 'var(--c)')
+      host.appendChild(d)
+      const names = window.__uiSelectorTest.runHeadless('[data-ov]').styles.variables.map(v => v.name)
+      d.remove()
+      return names
+    }
+    const plain = mk('ov')
+    const important = mk('ov-imp')
+    host.remove(); style.remove()
+    return { plain, important }
+  })
+  expect(out.plain).toContain('--c')          // inline beats a normal rule
+  expect(out.important).toContain('--b')      // !important beats inline
+})

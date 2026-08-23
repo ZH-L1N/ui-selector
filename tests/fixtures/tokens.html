@@ -6,3 +6,7 @@
   .b { color: var(--brand) }
 </style>
 <button class="b">tokened</button>
+<!-- Inline var() usage. Inline styles never appear in document.styleSheets, so a
+     declared-value map built only from matched rules cannot see these. CSS-in-JS,
+     styled-components and dynamic theming all emit exactly this shape. -->
+<div data-inline style="background-color: var(--brand); border-radius: var(--radius)">inline token user</div>
