@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="470" viewBox="0 0 1200 470" role="img" aria-labelledby="title desc">
+  <title id="title">One sanitized capture path</title>
+  <desc id="desc">A selected element passes through deny-by-default allowlists and bounded URL and text reduction into one CaptureV1 object, which produces both JSON and Markdown without runtime network requests.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#0a7766"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="470" rx="28" fill="#f5f3ec"/>
+  <rect x="1" y="1" width="1198" height="468" rx="27" fill="none" stroke="#cfd8d5" stroke-width="2"/>
+
+  <g id="heading" transform="translate(60 54)">
+    <text fill="#0a7766" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="650" letter-spacing="1.5">ONE CAPTURE PATH</text>
+    <text y="48" fill="#12211e" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="40" font-weight="700" letter-spacing="-1">The Markdown never gets a second chance to read the page.</text>
+  </g>
+
+  <g id="pipeline" transform="translate(60 164)" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <g id="selected-element">
+      <rect width="220" height="170" rx="14" fill="#ffffff" stroke="#9fb0ab" stroke-width="2"/>
+      <path d="M22 52V24H50 M170 24H198V52 M22 118V146H50 M170 146H198V118" fill="none" stroke="#0a7766" stroke-width="3"/>
+      <rect x="58" y="72" width="104" height="44" rx="8" fill="#0a7766"/>
+      <text x="110" y="100" fill="#ffffff" text-anchor="middle" font-size="20" font-weight="650">Get started</text>
+      <text x="110" y="158" fill="#5f706b" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">SELECTED ELEMENT</text>
+    </g>
+
+    <path d="M238 85H306" fill="none" stroke="#0a7766" stroke-width="3" marker-end="url(#arrow)"/>
+
+    <g id="capture-gate" transform="translate(326)">
+      <rect width="310" height="170" rx="14" fill="#e7f0ed" stroke="#0a7766" stroke-width="2"/>
+      <text x="24" y="36" fill="#12211e" font-size="24" font-weight="700">Deny-by-default gate</text>
+      <line x1="24" y1="54" x2="286" y2="54" stroke="#b7c9c4" stroke-width="2"/>
+      <g fill="#3c534e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">
+        <text x="24" y="84">01  ALLOWLISTED FIELDS</text>
+        <text x="24" y="116">02  BOUNDED TEXT</text>
+        <text x="24" y="148">03  REDUCED URLS</text>
+      </g>
+    </g>
+
+    <path d="M654 85H722" fill="none" stroke="#0a7766" stroke-width="3" marker-end="url(#arrow)"/>
+
+    <g id="capture-v1" transform="translate(742)">
+      <rect width="190" height="170" rx="14" fill="#12211e"/>
+      <text x="95" y="70" fill="#ffffff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="26" font-weight="700">CaptureV1</text>
+      <text x="95" y="104" fill="#b9d6ce" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">SANITIZED OBJECT</text>
+      <text x="95" y="138" fill="#ffffff" text-anchor="middle" font-size="20">one source of truth</text>
+    </g>
+
+    <path d="M950 85H962" fill="none" stroke="#0a7766" stroke-width="3" marker-end="url(#arrow)"/>
+
+    <g id="outputs" transform="translate(982)">
+      <rect width="128" height="72" rx="12" fill="#ffffff" stroke="#9fb0ab" stroke-width="2"/>
+      <text x="64" y="45" fill="#12211e" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="700">JSON</text>
+      <rect y="98" width="128" height="72" rx="12" fill="#ffffff" stroke="#9fb0ab" stroke-width="2"/>
+      <text x="64" y="143" fill="#12211e" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="700">MARKDOWN</text>
+    </g>
+  </g>
+
+  <g id="network-boundary" transform="translate(60 390)">
+    <line x1="0" y1="0" x2="1080" y2="0" stroke="#cfd8d5" stroke-width="2"/>
+    <text y="40" fill="#0a7766" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="650">NO FETCH · NO TELEMETRY · NO RUNTIME DEPENDENCIES</text>
+    <text x="1080" y="40" fill="#5f706b" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">OUTPUT MOVES ONLY WHEN YOU COPY OR DOWNLOAD</text>
+  </g>
+</svg>

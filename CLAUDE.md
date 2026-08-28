@@ -45,6 +45,7 @@ User-facing docs, kept in step with the code:
 | Lint                         | `npm run lint`                                              |
 | Format                       | `npm run format`                                            |
 | Typecheck                    | `npm run typecheck`                                         |
+| Regenerate README proof      | `node assets/readme/source/render-proof.mjs`                |
 
 `npm run build` prints the encoded bookmarklet size. That number is a budget, not
 trivia — see the payload gotcha below.
@@ -161,8 +162,10 @@ Two design invariants:
   spec §6.5 and `docs/data-contract.md` are transcribed from it, never maintained in
   parallel.
 - The encoded payload is a budget enforced by `tests/unit/build.test.ts` (< 60,000
-  bytes; currently 52,129). Check the number `npm run build` prints before adding a
+  bytes; currently 57,895). Check the number `npm run build` prints before adding a
   feature, not after.
+- README proof assets use only the committed Acme Kit fixture and a fixed capture clock;
+  never substitute a private page or a personal capture.
 - `selector.config.json` is gitignored and holds your real trusted origins. Only
   `selector.config.example.json` (loopback only) is committed. Never put a
   non-personal hostname in the committed example, and never commit capture output,

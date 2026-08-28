@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">ui-selector</title>
+  <desc id="desc">A local bookmarklet that captures structured UI evidence for coding agents as JSON and prompt-ready Markdown.</desc>
+
+  <rect width="1200" height="400" rx="28" fill="#f5f3ec"/>
+  <rect x="1" y="1" width="1198" height="398" rx="27" fill="none" stroke="#cfd8d5" stroke-width="2"/>
+
+  <g id="context" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="600" letter-spacing="1.8">
+    <text x="64" y="56" fill="#0a7766">LOCAL UI CAPTURE</text>
+    <text x="1136" y="56" fill="#5f706b" text-anchor="end">BOOKMARKLET / V1</text>
+  </g>
+
+  <g id="selection-field">
+    <rect x="64" y="104" width="642" height="132" rx="6" fill="#e7f0ed" fill-opacity="0.68"/>
+    <path d="M64 136V104H96 M674 104H706V136 M64 204V236H96 M674 236H706V204" fill="none" stroke="#0a7766" stroke-width="4" stroke-linecap="square"/>
+    <g transform="translate(430 80)">
+      <rect width="276" height="36" rx="18" fill="#0a7766"/>
+      <text x="138" y="24" fill="#ffffff" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="600">[data-testid=&quot;cta&quot;] · exact</text>
+    </g>
+    <text x="88" y="196" fill="#12211e" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="88" font-weight="750" letter-spacing="-4">ui-selector</text>
+  </g>
+
+  <g id="promise" transform="translate(770 108)" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="0" y="18" fill="#0a7766" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="650" letter-spacing="1.4">SELECT ONE ELEMENT</text>
+    <text x="0" y="62" fill="#12211e" font-size="32" font-weight="650" letter-spacing="-0.7">Give your coding agent</text>
+    <text x="0" y="100" fill="#12211e" font-size="32" font-weight="650" letter-spacing="-0.7">the UI evidence</text>
+    <text x="0" y="138" fill="#12211e" font-size="32" font-weight="650" letter-spacing="-0.7">you would otherwise</text>
+    <text x="0" y="176" fill="#12211e" font-size="32" font-weight="650" letter-spacing="-0.7">describe by hand.</text>
+  </g>
+
+  <g id="metadata" transform="translate(64 302)">
+    <line x1="0" y1="0" x2="1072" y2="0" stroke="#cfd8d5" stroke-width="2"/>
+    <g transform="translate(0 34)">
+      <circle cx="8" cy="-2" r="7" fill="#0a7766"/>
+      <text x="28" y="5" fill="#12211e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="650">LOCAL BOOKMARKLET</text>
+    </g>
+    <g transform="translate(404 34)">
+      <circle cx="8" cy="-2" r="7" fill="#0a7766"/>
+      <text x="28" y="5" fill="#12211e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="650">JSON + MARKDOWN</text>
+    </g>
+    <g transform="translate(790 34)">
+      <circle cx="8" cy="-2" r="7" fill="#0a7766"/>
+      <text x="28" y="5" fill="#12211e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="650">NO RUNTIME NETWORK</text>
+    </g>
+  </g>
+</svg>
